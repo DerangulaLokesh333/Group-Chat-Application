@@ -19,10 +19,13 @@ signupForm.addEventListener("submit", async (event) => {
 
         const message = await response.text();
 
-        alert(message);
-
         if (response.ok) {
+            alert("Successfuly signed up");
             signupForm.reset();
+        } else if (response.status === 400 && message.includes("User already exists")) {
+            alert("User already exists, Please Login");
+        } else {
+            alert(message);
         }
     } catch (error) {
         console.error("Signup error:", error);

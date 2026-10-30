@@ -28,6 +28,32 @@ const createMessage = async (req, res) => {
     }
 };
 
+const User = require("../models/userModel");
+
+// Get all messages from the database
+const getMessages = async (req, res) => {
+    try {
+        const messages = await Message.findAll({
+            include: [
+                {
+                    model: User,
+                    attributes: ["id", "name"],
+                },
+            ],
+            order: [["createdAt", "ASC"]],
+        });
+
+        return res.status(200).json(messages);
+    } catch (error) {
+        console.error("Error fetching messages:", error);
+
+        return res.status(500).json({
+            message: "Error fetching messages",
+        });
+    }
+};
+
 module.exports = {
     createMessage,
+    getMessages,
 };

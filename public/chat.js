@@ -80,6 +80,40 @@ messageForm.addEventListener("submit", async (event) => {
     }
 });
 
+// Load all saved messages from the database
+async function loadMessages() {
+    try {
+        const response = await fetch("http://localhost:3000/api/messages", {
+            headers: {
+                Authorization: `Bearer ${token}`
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error("Unable to load messages");
+        }
+
+        const messages = await response.json();
+
+        messagesContainer.innerHTML = "";
+
+        messages.forEach((msg) => {
+            const messageElement = document.createElement("p");
+
+            const senderName = msg.User ? msg.User.name : `User ${msg.userId}`;
+
+            messageElement.textContent = `${senderName}: ${msg.message}`;
+
+            messagesContainer.appendChild(messageElement);
+        });
+
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    } catch (error) {
+        console.error("Error loading messages:", error);
+    }
+}
+
 if (token) {
     loadUsers();
+    loadMessages();
 }

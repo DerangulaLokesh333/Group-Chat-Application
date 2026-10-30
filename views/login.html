@@ -21,11 +21,25 @@
     </form>
 
     <p>New user?</p>
-    <button type="button" onclick="window.location.href='/views/signup.html'">
-        Signup
-    </button>
+    <button type="button" id="signupButton">Signup</button>
 
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-   <script src="../public/login.js"></script>
+
+    <script>
+        const isLiveServer = window.location.port === "5500";
+
+        const script = document.createElement("script");
+        script.src = isLiveServer
+            ? "../public/login.js"
+            : "/login.js";
+
+        document.body.appendChild(script);
+
+        document.getElementById("signupButton").addEventListener("click", () => {
+            window.location.href = isLiveServer
+                ? "/views/signup.html"
+                : "/signup.html";
+        });
+    </script>
 </body>
 </html>

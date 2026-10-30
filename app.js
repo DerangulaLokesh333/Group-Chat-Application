@@ -1,3 +1,4 @@
+
 const express = require("express");
 const bodyParser = require("body-parser");
 const path = require("path");
@@ -20,14 +21,29 @@ app.use(cors({
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
+// Serve static files
 app.use(express.static(path.join(__dirname, "public")));
+app.use(express.static(path.join(__dirname, "views")));
 
+// Login page
+app.get("/login.html", (req, res) => {
+    res.sendFile(path.join(__dirname, "views", "login.html"));
+});
+
+// Chat page
+app.get("/chat.html", (req, res) => {
+    res.sendFile(path.join(__dirname, "views", "chat.html"));
+});
+
+// Signup page
 app.get("/", (req, res) => {
     res.sendFile(path.join(__dirname, "views", "signup.html"));
 });
 
+// User APIs
 app.use("/api/users", userRoutes);
 
+// Connect to database and start server
 sequelize.sync()
     .then(() => {
         console.log("Database connected and tables synchronized");

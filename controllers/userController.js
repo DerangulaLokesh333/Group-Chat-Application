@@ -69,7 +69,23 @@ const loginUser = async (req, res) => {
     }
 };
 
+const getUsers = async (req, res) => {
+    try {
+        const users = await User.findAll({
+            attributes: ["id", "name", "email"]
+        });
+
+        return res.status(200).json(users);
+    } catch (err) {
+        console.error("Error fetching users:", err);
+        return res.status(500).json({
+            message: "Error fetching users"
+        });
+    }
+};
+
 module.exports = {
     registerUser,
     loginUser,
+    getUsers,
 };

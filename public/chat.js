@@ -1,11 +1,12 @@
-
 const token = localStorage.getItem("token");
 
 if (!token) {
     window.location.href = "/login.html";
-} else {
-    loadUsers();
 }
+
+const messageForm = document.getElementById("messageForm");
+const messageInput = document.getElementById("messageInput");
+const messagesContainer = document.getElementById("messages");
 
 // Load registered users
 async function loadUsers() {
@@ -37,12 +38,8 @@ async function loadUsers() {
     }
 }
 
-// Handle sending and displaying messages in this browser
-const messageForm = document.getElementById("messageForm");
-const messageInput = document.getElementById("messageInput");
-const messagesContainer = document.getElementById("messages");
-
-messageForm.addEventListener("submit", (event) => {
+// Save message to the database
+messageForm.addEventListener("submit", async (event) => {
     event.preventDefault();
 
     const message = messageInput.value.trim();
@@ -51,13 +48,38 @@ messageForm.addEventListener("submit", (event) => {
         return;
     }
 
-    const messageElement = document.createElement("p");
-    messageElement.textContent = message;
+    try {
+        const response = await fetch("http://localhost:3000/api/messages", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`
+            },
+            body: JSON.stringify({ message })
+        });
 
-    messagesContainer.appendChild(messageElement);
+        const result = await response.json();
 
-    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        if (!response.ok) {
+            throw new Error(result.message || "Unable to save message");
+        }
 
-    messageInput.value = "";
-    messageInput.focus();
+        const messageElement = document.createElement("p");
+        messageElement.textContent = result.data.message;
+        messagesContainer.appendChild(messageElement);
+
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+        messageInput.value = "";
+        messageInput.focus();
+
+        console.log("Message saved:", result.data);
+    } catch (error) {
+        console.error("Error sending message:", error);
+        alert(error.message);
+    }
 });
+
+if (token) {
+    loadUsers();
+}

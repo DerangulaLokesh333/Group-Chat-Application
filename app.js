@@ -5,11 +5,23 @@ const path = require("path");
 const cors = require("cors");
 
 const sequelize = require("./config/database");
-require("./models/userModel");
+
+const User = require("./models/userModel");
+const Message = require("./models/messageModel");
+
 const userRoutes = require("./routes/userRoutes");
+const messageRoutes = require("./routes/messageRoutes");
 
 const app = express();
 const PORT = 3000;
+
+User.hasMany(Message, {
+    foreignKey: "userId",
+});
+
+Message.belongsTo(User, {
+    foreignKey: "userId",
+});
 
 // Allow requests from the Live Server frontend
 app.use(cors({
@@ -42,6 +54,7 @@ app.get("/", (req, res) => {
 
 // User APIs
 app.use("/api/users", userRoutes);
+app.use("/api/messages", messageRoutes);
 
 // Connect to database and start server
 sequelize.sync()

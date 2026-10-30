@@ -19,7 +19,7 @@ document.getElementById("loginForm").addEventListener("submit", async (event) =>
         alert(response.data.message);
 
         // Open the chat window served by Express
-        window.location.href = "http://localhost:3000/chat.html";
+        window.location.href = "/views/chat.html";
 
     } catch (error) {
         const message = error.response

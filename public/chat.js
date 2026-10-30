@@ -1,4 +1,5 @@
 const token = localStorage.getItem("token");
+console.log("Token from localStorage:", token ? "Present" : "Missing");
 
 if (!token) {
     window.location.href = "/login.html";
@@ -116,4 +117,9 @@ async function loadMessages() {
 if (token) {
     loadUsers();
     loadMessages();
+
+    // Fetch new messages every 1 second
+    setInterval(() => {
+        loadMessages();
+    }, 1000);
 }

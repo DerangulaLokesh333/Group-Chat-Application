@@ -30,6 +30,7 @@ const registerUser = async (req, res) => {
 };
 
 const secretKey = process.env.TOKEN_SECRET;
+console.log("JWT secret loaded:", Boolean(secretKey));
 
 const loginUser = async (req, res) => {
     const { email, password } = req.body;
@@ -56,6 +57,8 @@ const loginUser = async (req, res) => {
             secretKey,
             { expiresIn: "1h" }
         );
+
+        console.log("Login user:", user.id, user.email);
 
         return res.status(200).json({
             message: "Login successful",

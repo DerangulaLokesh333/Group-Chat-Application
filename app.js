@@ -10,12 +10,11 @@ const userRoutes = require("./routes/userRoutes");
 const app = express();
 const PORT = 3000;
 
-// Configure CORS for the frontend origin.
-// This allows requests from the specified frontend origin.
+// Allow requests from the Live Server frontend
 app.use(cors({
-    origin: "http://localhost:3000",
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"]
+    origin: "http://127.0.0.1:5500",
+    methods: ["GET", "POST"],
+    allowedHeaders: ["Content-Type"]
 }));
 
 app.use(bodyParser.json());

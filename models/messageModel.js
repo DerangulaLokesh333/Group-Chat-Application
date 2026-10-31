@@ -15,6 +15,11 @@ const Message = sequelize.define("Message", {
             key: "id",
         },
     },
+
+    groupId: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+    },
     message: {
         type: DataTypes.TEXT,
         allowNull: false,

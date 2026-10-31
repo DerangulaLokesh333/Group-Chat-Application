@@ -3,33 +3,114 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chat App</title>
+    <title>Group Chat App</title>
 
     <style>
+        * {
+            box-sizing: border-box;
+        }
+
         body {
             font-family: Arial, sans-serif;
             margin: 0;
-            background-color: white;
+            background-color: #f5f7fa;
         }
 
         h2 {
+            margin: 0;
+            padding: 15px;
             text-align: center;
-            margin: 10px 0;
+            background-color: #24536b;
+            color: white;
         }
 
         #chatContainer {
-            width: 70%;
+            display: flex;
+            width: 90%;
+            max-width: 1200px;
             height: 80vh;
             margin: 20px auto;
             border: 1px solid #ccc;
+            background-color: white;
+        }
+
+        #sidebar {
+            width: 280px;
+            min-width: 220px;
+            padding: 15px;
+            background-color: #eef2f5;
+            border-right: 1px solid #ccc;
+            overflow-y: auto;
+        }
+
+        #sidebar h3 {
+            margin-top: 0;
+        }
+
+        #createGroupForm {
             display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+
+        #groupNameInput,
+        #inviteUserSelect {
+            width: 100%;
+            padding: 9px;
+        }
+
+        #groupsList {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        #groupsList li {
+            margin-bottom: 6px;
+        }
+
+        .group-button {
+            width: 100%;
+            padding: 10px;
+            text-align: left;
+            border: 1px solid #ccc;
+            background-color: white;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .group-button.active {
+            background-color: #24536b;
+            color: white;
+        }
+
+        #mainChat {
+            display: flex;
+            flex: 1;
+            min-width: 0;
             flex-direction: column;
         }
 
-        #userList {
-            padding: 10px 20px;
-            background-color: #f1f1f1;
+        #chatHeader {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            padding: 12px;
             border-bottom: 1px solid #ccc;
+            background-color: #f1f1f1;
+        }
+
+        #selectedGroupName {
+            margin: 0;
+            overflow-wrap: anywhere;
+        }
+
+        #inviteSection {
+            display: flex;
+            gap: 6px;
+            align-items: center;
         }
 
         #messages {
@@ -38,47 +119,139 @@
             padding: 10px;
         }
 
+        .message {
+            margin: 8px 0;
+            padding: 8px 10px;
+            background-color: #eef2f5;
+            border-radius: 5px;
+            overflow-wrap: anywhere;
+        }
+
+        .message strong {
+            display: block;
+            margin-bottom: 4px;
+        }
+
         #messageForm {
             display: flex;
+            gap: 8px;
             padding: 10px;
             background-color: #24536b;
         }
 
         #messageInput {
             flex: 1;
-            padding: 8px;
+            min-width: 0;
+            padding: 10px;
         }
 
         button {
             padding: 8px 12px;
             cursor: pointer;
         }
+
+        #statusMessage {
+            padding: 0 15px;
+            color: #a12622;
+            overflow-wrap: anywhere;
+        }
+
+        #usersSection {
+            padding: 10px 15px;
+            border-top: 1px solid #ccc;
+            background-color: #f8f9fa;
+        }
+
+        #users {
+            margin: 5px 0;
+            padding-left: 20px;
+        }
+
+        @media (max-width: 650px) {
+            #chatContainer {
+                width: 100%;
+                height: calc(100vh - 55px);
+                margin: 0;
+            }
+
+            #sidebar {
+                width: 35%;
+                min-width: 120px;
+                padding: 8px;
+            }
+
+            #chatHeader {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+
+            #inviteSection {
+                width: 100%;
+            }
+
+            #inviteUserSelect {
+                min-width: 0;
+            }
+        }
     </style>
 </head>
 <body>
-    <h2>Chat App</h2>
+    <h2>Group Chat App</h2>
 
     <div id="chatContainer">
-        <div id="userList">
-            <strong>Logged-in Users:</strong>
-            <ul id="users"></ul>
-        </div>
+        <aside id="sidebar">
+            <h3>My Groups</h3>
 
-        <div id="messages">
-            <p>Welcome to the chat!</p>
-        </div>
+            <form id="createGroupForm">
+                <input
+                    type="text"
+                    id="groupNameInput"
+                    placeholder="Enter group name"
+                    maxlength="100"
+                    required
+                >
+                <button type="submit">Create Group</button>
+            </form>
 
-        <form id="messageForm">
-            <input
-                type="text"
-                id="messageInput"
-                placeholder="Type a message..."
-                autocomplete="off"
-                required
-            >
-            <button type="submit">Send</button>
-        </form>
+            <ul id="groupsList"></ul>
+        </aside>
+
+        <main id="mainChat">
+            <div id="chatHeader">
+                <h3 id="selectedGroupName">Select a group</h3>
+
+                <div id="inviteSection">
+                    <select id="inviteUserSelect" aria-label="Select a user to invite">
+                        <option value="">Select user</option>
+                    </select>
+                    <button type="button" id="inviteButton">Invite</button>
+                </div>
+            </div>
+
+            <div id="messages" aria-live="polite">
+                <p>Select a group to view its messages.</p>
+            </div>
+
+            <form id="messageForm">
+                <input
+                    type="text"
+                    id="messageInput"
+                    placeholder="Type a message..."
+                    autocomplete="off"
+                    required
+                    disabled
+                >
+                <button type="submit" id="sendButton" disabled>Send</button>
+            </form>
+        </main>
     </div>
+
+    <p id="statusMessage" role="status"></p>
+
+    <section id="usersSection">
+        <strong>Registered Users</strong>
+        <ul id="users"></ul>
+    </section>
 
     <script src="../public/chat.js"></script>
 </body>

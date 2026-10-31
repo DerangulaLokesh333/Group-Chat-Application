@@ -11,6 +11,10 @@ const Message = require("./models/messageModel");
 
 const userRoutes = require("./routes/userRoutes");
 const messageRoutes = require("./routes/messageRoutes");
+const groupRoutes = require("./routes/groupRoutes");
+
+const Group = require("./models/groupModel");
+const GroupMember = require("./models/groupMemberModel");
 
 const app = express();
 const PORT = 3000;
@@ -22,6 +26,15 @@ User.hasMany(Message, {
 Message.belongsTo(User, {
     foreignKey: "userId",
 });
+
+User.hasMany(GroupMember, { foreignKey: "userId" });
+GroupMember.belongsTo(User, { foreignKey: "userId" });
+
+Group.hasMany(GroupMember, { foreignKey: "groupId" });
+GroupMember.belongsTo(Group, { foreignKey: "groupId" });
+
+User.hasMany(Group, { foreignKey: "createdBy" });
+Group.belongsTo(User, { foreignKey: "createdBy" });
 
 // Allow requests from the Live Server frontend
 
@@ -57,6 +70,7 @@ app.get("/", (req, res) => {
 // User APIs
 app.use("/api/users", userRoutes);
 app.use("/api/messages", messageRoutes);
+app.use("/api/groups", groupRoutes);
 
 // Connect to database and start server
 sequelize.sync()

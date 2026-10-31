@@ -14,8 +14,10 @@ const groupsList = document.getElementById("groupsList");
 const createGroupForm = document.getElementById("createGroupForm");
 const groupNameInput = document.getElementById("groupNameInput");
 const selectedGroupName = document.getElementById("selectedGroupName");
-const inviteUserSelect = document.getElementById("inviteUserSelect");
-const inviteButton = document.getElementById("inviteButton");
+const userSearchInput = document.getElementById("userSearchInput");
+const searchUsersButton = document.getElementById("searchUsersButton");
+const groupMembersList = document.getElementById("groupMembersList");
+const userSearchResults = document.getElementById("userSearchResults");
 const sendButton = document.getElementById("sendButton");
 const statusMessage = document.getElementById("statusMessage");
 
@@ -63,7 +65,8 @@ function displayMessages(messages) {
 
     if (!currentGroup) {
         const placeholder = document.createElement("p");
-        placeholder.textContent = "Create a group or select one to start chatting.";
+        placeholder.textContent =
+            "Create a group or select one to start chatting.";
         messagesContainer.appendChild(placeholder);
         return;
     }
@@ -121,30 +124,23 @@ async function apiRequest(endpoint, options = {}) {
     return result;
 }
 
-// Load registered users for the users list and invite dropdown.
+// Load registered users for the existing users list.
 async function loadUsers() {
     try {
-        const users = await apiRequest("/users");
-        registeredUsers = Array.isArray(users) ? users : [];
+        const result = await apiRequest("/users");
+        registeredUsers = Array.isArray(result)
+            ? result
+            : Array.isArray(result.users)
+                ? result.users
+                : [];
 
         const userList = document.getElementById("users");
         userList.replaceChildren();
-        inviteUserSelect.replaceChildren();
-
-        const defaultOption = document.createElement("option");
-        defaultOption.value = "";
-        defaultOption.textContent = "Select user";
-        inviteUserSelect.appendChild(defaultOption);
 
         registeredUsers.forEach((user) => {
             const listItem = document.createElement("li");
             listItem.textContent = user.name;
             userList.appendChild(listItem);
-
-            const option = document.createElement("option");
-            option.value = user.id;
-            option.textContent = user.name;
-            inviteUserSelect.appendChild(option);
         });
     } catch (error) {
         console.error("Error loading users:", error);
@@ -170,18 +166,40 @@ function renderGroups(groups) {
         button.className = "group-button";
         button.textContent = group.name;
         button.dataset.groupId = group.id;
+
         button.classList.toggle(
             "active",
-            currentGroup && Number(currentGroup.id) === Number(group.id)
+            currentGroup &&
+                Number(currentGroup.id) === Number(group.id)
         );
 
-        button.addEventListener("click", () => {
-            selectGroup(group);
-        });
+        button.addEventListener("click", () => selectGroup(group));
 
         item.appendChild(button);
         groupsList.appendChild(item);
     });
+}
+
+function updateAdminControls() {
+    const isAdmin = Boolean(currentGroup && currentGroup.isAdmin);
+    const hasGroup = Boolean(currentGroup);
+
+    userSearchInput.disabled = !isAdmin;
+    searchUsersButton.disabled = !isAdmin;
+
+    if (!hasGroup) {
+        groupMembersList.replaceChildren();
+
+        const item = document.createElement("li");
+        item.textContent = "Select a group to view its members.";
+        groupMembersList.appendChild(item);
+
+        userSearchResults.replaceChildren();
+        userSearchInput.value = "";
+    } else if (!isAdmin) {
+        userSearchResults.replaceChildren();
+        userSearchInput.value = "";
+    }
 }
 
 async function loadGroups() {
@@ -193,7 +211,8 @@ async function loadGroups() {
 
         if (currentGroup) {
             const updatedCurrentGroup = groups.find(
-                (group) => Number(group.id) === Number(currentGroup.id)
+                (group) =>
+                    Number(group.id) === Number(currentGroup.id)
             );
 
             if (updatedCurrentGroup) {
@@ -204,13 +223,15 @@ async function loadGroups() {
                 selectedGroupName.textContent = "Select a group";
                 messageInput.disabled = true;
                 sendButton.disabled = true;
-                inviteButton.disabled = true;
                 displayMessages([]);
+                updateAdminControls();
             }
         }
 
         if (!currentGroup && groups.length > 0) {
             await selectGroup(groups[0]);
+        } else {
+            updateAdminControls();
         }
     } catch (error) {
         console.error("Error loading groups:", error);
@@ -225,27 +246,103 @@ async function selectGroup(group) {
     selectedGroupName.textContent = group.name;
     messageInput.disabled = false;
     sendButton.disabled = false;
-    inviteButton.disabled = false;
 
-    renderGroups(
-        Array.from(groupsList.querySelectorAll("button")).map((button) => ({
-            id: button.dataset.groupId,
-            name: button.textContent,
-        })).filter((item) => item.id)
-    );
-
-    // Update active styling using the selected group ID.
-    Array.from(groupsList.querySelectorAll(".group-button")).forEach((button) => {
-        button.classList.toggle(
-            "active",
-            Number(button.dataset.groupId) === Number(group.id)
-        );
-    });
+    updateAdminControls();
+    renderGroupsFromCurrentData();
 
     displayMessages(currentGroupMessages);
     showStatus("");
 
+    await loadGroupMembers();
     await loadMessages();
+}
+
+function renderGroupsFromCurrentData() {
+    const buttons = groupsList.querySelectorAll(".group-button");
+
+    buttons.forEach((button) => {
+        button.classList.toggle(
+            "active",
+            Number(button.dataset.groupId) === Number(currentGroup?.id)
+        );
+    });
+}
+
+async function loadGroupMembers() {
+    if (!currentGroup) {
+        return;
+    }
+
+    const groupId = currentGroup.id;
+
+    try {
+        const result = await apiRequest(`/groups/${groupId}/members`);
+        const members = Array.isArray(result.members) ? result.members : [];
+
+        // Ignore results if the user has switched groups while loading.
+        if (!currentGroup || Number(currentGroup.id) !== Number(groupId)) {
+            return;
+        }
+
+        groupMembersList.replaceChildren();
+
+        if (members.length === 0) {
+            const item = document.createElement("li");
+            item.textContent = "No members found.";
+            groupMembersList.appendChild(item);
+            return;
+        }
+
+        members.forEach((member) => {
+            const item = document.createElement("li");
+
+            const details = document.createElement("span");
+            details.textContent =
+                `${member.name} (${member.email})` +
+                (member.isAdmin ? " — Admin" : "");
+
+            item.appendChild(details);
+
+            if (currentGroup.isAdmin && !member.isAdmin) {
+                const promoteButton = document.createElement("button");
+                promoteButton.type = "button";
+                promoteButton.textContent = "Make Admin";
+
+                promoteButton.addEventListener("click", async () => {
+                    await promoteMember(member.id);
+                });
+
+                item.appendChild(promoteButton);
+            }
+
+            const isGroupCreator =
+                Number(member.id) === Number(currentGroup.createdBy);
+
+            if (currentGroup.isAdmin && !isGroupCreator) {
+                const removeButton = document.createElement("button");
+                removeButton.type = "button";
+                removeButton.textContent = "Remove";
+
+                removeButton.addEventListener("click", async () => {
+                    await removeMember(member.id);
+                });
+
+                item.appendChild(removeButton);
+            }
+
+            groupMembersList.appendChild(item);
+        });
+    } catch (error) {
+        console.error("Error loading group members:", error);
+
+        if (currentGroup && Number(currentGroup.id) === Number(groupId)) {
+            groupMembersList.replaceChildren();
+
+            const item = document.createElement("li");
+            item.textContent = error.message || "Unable to load group members.";
+            groupMembersList.appendChild(item);
+        }
+    }
 }
 
 createGroupForm.addEventListener("submit", async (event) => {
@@ -271,6 +368,7 @@ createGroupForm.addEventListener("submit", async (event) => {
         await loadGroups();
 
         if (result.group) {
+            await loadGroups();
             await selectGroup(result.group);
         }
     } catch (error) {
@@ -281,34 +379,157 @@ createGroupForm.addEventListener("submit", async (event) => {
     }
 });
 
-inviteButton.addEventListener("click", async () => {
+async function searchUsers() {
     if (!currentGroup) {
         showStatus("Select a group first.");
         return;
     }
 
-    const userId = Number(inviteUserSelect.value);
-
-    if (!Number.isInteger(userId) || userId <= 0) {
-        showStatus("Select a registered user to invite.");
+    if (!currentGroup.isAdmin) {
+        showStatus("Only group admins can search for users to add.");
         return;
     }
 
+    const searchTerm = userSearchInput.value.trim();
+
+    if (!searchTerm) {
+        showStatus("Enter a name, email, or phone number to search.");
+        return;
+    }
+
+    const groupId = currentGroup.id;
+    userSearchResults.replaceChildren();
+
     try {
         const result = await apiRequest(
-            `/groups/${currentGroup.id}/members`,
-            {
-                method: "POST",
-                body: JSON.stringify({ userId }),
-            }
+            `/groups/${groupId}/users/search?q=${encodeURIComponent(searchTerm)}`
         );
 
-        showStatus(result.message || "User added to group successfully.");
+        if (!currentGroup || Number(currentGroup.id) !== Number(groupId)) {
+            return;
+        }
+
+        const users = Array.isArray(result.users) ? result.users : [];
+
+        if (users.length === 0) {
+            const message = document.createElement("p");
+            message.textContent = "No matching users found.";
+            userSearchResults.appendChild(message);
+            return;
+        }
+
+        users.forEach((user) => {
+            const item = document.createElement("div");
+
+            const details = document.createElement("span");
+            details.textContent =
+                `${user.name} — ${user.email} — ${user.phone}`;
+
+            const addButton = document.createElement("button");
+            addButton.type = "button";
+            addButton.textContent = "Add to Group";
+
+            addButton.addEventListener("click", async () => {
+                await addMember(user.id);
+            });
+
+            item.append(details, addButton);
+            userSearchResults.appendChild(item);
+        });
     } catch (error) {
-        console.error("Error inviting user:", error);
-        showStatus(error.message || "Unable to invite user.");
+        console.error("Error searching users:", error);
+        showStatus(error.message || "Unable to search users.");
+    }
+}
+
+searchUsersButton.addEventListener("click", searchUsers);
+
+userSearchInput.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+        event.preventDefault();
+        searchUsers();
     }
 });
+
+async function addMember(userId) {
+    if (!currentGroup || !currentGroup.isAdmin) {
+        showStatus("Only group admins can add users.");
+        return;
+    }
+
+    const groupId = currentGroup.id;
+
+    try {
+        const result = await apiRequest(`/groups/${groupId}/members`, {
+            method: "POST",
+            body: JSON.stringify({ userId }),
+        });
+
+        showStatus(result.message || "User added to group successfully.");
+
+        userSearchResults.replaceChildren();
+        userSearchInput.value = "";
+
+        await loadGroupMembers();
+    } catch (error) {
+        console.error("Error adding member:", error);
+        showStatus(error.message || "Unable to add user.");
+    }
+}
+
+async function promoteMember(userId) {
+    if (!currentGroup || !currentGroup.isAdmin) {
+        showStatus("Only group admins can promote members.");
+        return;
+    }
+
+    const groupId = currentGroup.id;
+
+    try {
+        const result = await apiRequest(
+            `/groups/${groupId}/members/${userId}/admin`,
+            { method: "PATCH" }
+        );
+
+        showStatus(result.message || "Member promoted to admin successfully.");
+
+        await loadGroupMembers();
+    } catch (error) {
+        console.error("Error promoting member:", error);
+        showStatus(error.message || "Unable to promote member.");
+    }
+}
+
+async function removeMember(userId) {
+    if (!currentGroup || !currentGroup.isAdmin) {
+        showStatus("Only group admins can remove members.");
+        return;
+    }
+
+    const confirmed = window.confirm(
+        "Are you sure you want to remove this member from the group?"
+    );
+
+    if (!confirmed) {
+        return;
+    }
+
+    const groupId = currentGroup.id;
+
+    try {
+        const result = await apiRequest(
+            `/groups/${groupId}/members/${userId}`,
+            { method: "DELETE" }
+        );
+
+        showStatus(result.message || "Member removed from group successfully.");
+
+        await loadGroupMembers();
+    } catch (error) {
+        console.error("Error removing member:", error);
+        showStatus(error.message || "Unable to remove member.");
+    }
+}
 
 messageForm.addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -335,7 +556,6 @@ messageForm.addEventListener("submit", async (event) => {
         messageInput.value = "";
         messageInput.focus();
 
-        // Only refresh messages for the group that was selected when sending.
         if (currentGroup && Number(currentGroup.id) === Number(groupId)) {
             await loadMessages();
         }
@@ -394,14 +614,15 @@ async function loadMessages() {
 if (token) {
     messageInput.disabled = true;
     sendButton.disabled = true;
-    inviteButton.disabled = true;
+    userSearchInput.disabled = true;
+    searchUsersButton.disabled = true;
 
     loadUsers();
     loadGroups();
 
-    // Preserve the existing one-second incremental polling.
+    // Preserve the existing one-second incremental message polling.
     setInterval(loadMessages, 1000);
 
-    // Refresh the group list periodically to show newly added memberships.
+    // Refresh groups periodically to detect membership changes.
     setInterval(loadGroups, 5000);
 }

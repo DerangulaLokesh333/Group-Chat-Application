@@ -39,11 +39,13 @@ Group.belongsTo(User, { foreignKey: "createdBy" });
 // Allow requests from the Live Server frontend
 
 // Allow requests from the Live Server frontend
-app.use(cors({
-    origin: "http://127.0.0.1:5500",
-    methods: ["GET", "POST"],
-    allowedHeaders: ["Content-Type", "Authorization"]
-}));
+app.use(
+    cors({
+        origin: "http://127.0.0.1:5500",
+        methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+        allowedHeaders: ["Content-Type", "Authorization"],
+    })
+);
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));

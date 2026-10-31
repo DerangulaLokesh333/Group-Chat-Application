@@ -17,12 +17,20 @@ const GroupMember = sequelize.define(
             type: DataTypes.INTEGER,
             allowNull: false,
         },
+        isAdmin: {
+            type: DataTypes.BOOLEAN,
+            allowNull: false,
+            defaultValue: false,
+        },
     },
     {
         indexes: [
             {
                 unique: true,
                 fields: ["groupId", "userId"],
+            },
+            {
+                fields: ["userId", "groupId"],
             },
         ],
     }

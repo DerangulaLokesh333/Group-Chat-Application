@@ -31,16 +31,27 @@ const createMessage = async (req, res) => {
 const User = require("../models/userModel");
 
 // Get all messages from the database
+// Get new messages from the database
+// Get new messages from the database
 const getMessages = async (req, res) => {
     try {
+        const lastMessageId = Number(req.query.lastMessageId) || 0;
+
+        const { Op } = require("sequelize");
+
         const messages = await Message.findAll({
+            where: {
+                id: {
+                    [Op.gt]: lastMessageId
+                }
+            },
             include: [
                 {
                     model: User,
                     attributes: ["id", "name"],
                 },
             ],
-            order: [["createdAt", "ASC"]],
+            order: [["id", "ASC"]],
         });
 
         return res.status(200).json(messages);
@@ -52,7 +63,6 @@ const getMessages = async (req, res) => {
         });
     }
 };
-
 module.exports = {
     createMessage,
     getMessages,
